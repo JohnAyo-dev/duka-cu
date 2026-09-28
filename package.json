@@ -1,0 +1,13 @@
+{
+  "name": "duka-cu-backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "API for the Duka.cu student marketplace",
+  "scripts": {
+    "start": "node backend/server.js",
+    "test": "node --test backend/tests/*.test.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

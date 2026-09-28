@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Your profile — Duka.cu</title>
+<meta name="description" content="Your Duka.cu profile: buying and selling history, listings, ratings and campus details.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,600;0,700;1,500&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<script src="js/theme.js"></script>
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/profile.css">
+</head>
+<body>
+
+  <div class="header">
+    <div class="logo"><a href="index.html"><h1>Duka<span>.cu</span></h1></a></div>
+    <div class="search">
+      <form id="searchForm" action="index.html">
+        <input class="searchbar" id="searchInput" type="search" name="q" placeholder="Search for laptops, books, hostel items…">
+        <button class="search_submit" type="submit">Search</button>
+      </form>
+    </div>
+    <div class="information">
+      <a href="profile.html"><p id="accountLabel">Profile</p></a>
+      <a href="cart.html"><p>Cart<span class="cart_badge" id="cartBadge">0</span></p></a>
+      <a href="budget.html"><p>Budget</p></a>
+      <a href="chat.html"><p>Chat<span class="chat_badge" id="chatBadge">0</span></p></a>
+      <a href="riders.html"><p>Ride for Duka</p></a>
+      <div class="sell"><a href="sell.html">Sell on Duka</a></div>
+    </div>
+  </div>
+
+  <div class="pf_section">
+    <div class="pf_stack">
+
+      <section class="pf_hero" aria-labelledby="pfName">
+        <div class="pf_avatar" id="pfAvatar" aria-hidden="true">–</div>
+        <div class="pf_id">
+          <h1 class="pf_name" id="pfName">Your profile</h1>
+          <div class="pf_handle" id="pfHandle">@add-your-name</div>
+          <div class="pf_chips" id="pfChips"></div>
+          <p class="pf_about" id="pfAbout" hidden></p>
+        </div>
+        <div class="pf_hero_actions">
+          <button class="page_submit pf_ghost pf_form_edit" type="button" onclick="toggleProfileForm()">Edit profile</button>
+          <div class="save_confirm" id="saveConfirm">Saved ✓</div>
+        </div>
+      </section>
+
+      <section class="pf_stats" aria-label="Your activity at a glance">
+        <div class="pf_stat">
+          <span class="pf_stat_value" id="statBuys">0</span>
+          <span class="pf_stat_label">Purchases</span>
+          <span class="pf_stat_sub" id="statBuysSub">on Duka.cu</span>
+        </div>
+        <div class="pf_stat">
+          <span class="pf_stat_value is_stamp" id="statSells">0</span>
+          <span class="pf_stat_label">Items sold</span>
+          <span class="pf_stat_sub" id="statSellsSub">across your listings</span>
+        </div>
+        <div class="pf_stat">
+          <span class="pf_stat_value" id="statTrades">0</span>
+          <span class="pf_stat_label">Trades</span>
+          <span class="pf_stat_sub">buys and sells combined</span>
+        </div>
+        <div class="pf_stat">
+          <span class="pf_stat_value is_ledger" id="statRating">–</span>
+          <span class="pf_stat_label">Seller rating</span>
+          <span class="pf_stat_sub" id="statRatingSub">no ratings yet</span>
+        </div>
+      </section>
+
+      <div class="pf_cols">
+        <div class="pf_stack">
+
+          <section class="pf_panel" aria-labelledby="pfOrdersHead">
+            <div class="pf_panel_head">
+              <h3 id="pfOrdersHead">Recent purchases</h3>
+              <a href="settings.html#purchase-history">All orders</a>
+            </div>
+            <div class="pf_orders" id="pfOrders"></div>
+          </section>
+
+          <section class="pf_panel" aria-labelledby="pfListingsHead">
+            <div class="pf_panel_head">
+              <h3 id="pfListingsHead">Your listings</h3>
+              <a href="sell.html">Post another</a>
+            </div>
+            <div class="pf_listings" id="pfListings"></div>
+          </section>
+
+        </div>
+
+        <div class="pf_stack">
+
+          <section class="pf_panel" aria-labelledby="pfDetailsHead">
+            <div class="pf_panel_head">
+              <h3 id="pfDetailsHead">Details</h3>
+              <a href="settings.html#privacy">Privacy</a>
+            </div>
+            <dl class="pf_rows" id="pfDetails"></dl>
+            <p class="pf_note">Saved on this device. Selling and buying history stays here until accounts are stored on the server.</p>
+          </section>
+
+          <section class="pf_panel pf_form" id="pfForm" aria-labelledby="pfFormHead" hidden>
+            <div class="pf_panel_head">
+              <h3 id="pfFormHead">Edit profile</h3>
+            </div>
+            <div class="field"><label for="pf_name">Display name</label><input type="text" id="pf_name" placeholder="e.g. Ada" autocomplete="name"></div>
+            <div class="field"><label for="pf_email">School email</label><input type="email" id="pf_email" placeholder="you@stu.cu.edu.ng" autocomplete="email"></div>
+            <div class="field_row">
+              <div class="field"><label for="pf_phone">Phone</label><input type="tel" id="pf_phone" placeholder="+234 800 000 0000" autocomplete="tel"></div>
+              <div class="field"><label for="pf_level">Level</label><input type="text" id="pf_level" placeholder="e.g. 300L"></div>
+            </div>
+            <div class="field"><label for="pf_department">Department</label><input type="text" id="pf_department" placeholder="e.g. Computer Science"></div>
+            <div class="field"><label for="pf_matric">Matric number</label><input type="text" id="pf_matric" placeholder="e.g. 19076543"></div>
+            <div class="field"><label for="pf_bio">About you</label><input type="text" id="pf_bio" placeholder="One line other students see on your listings"></div>
+            <button class="page_submit" type="button" onclick="saveProfile()">Save profile</button>
+          </section>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+  <script src="js/chat.js"></script>
+  <script src="js/pages/profile.js"></script>
+  <script src="js/nav.js" defer></script>
+
+</body>
+</html>
