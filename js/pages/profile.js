@@ -3,7 +3,7 @@
     // selling activity from the listings this user owns, and renders the
     // identity card, stat tiles, purchase history and detail rows.
     //
-    // Until accounts move server-side (see ToDO, backend item 6) everything
+    // Until accounts move server-side (see ToDo.md, backend item 6) everything
     // here is per-device. On a first visit the profile is seeded with a
     // sample identity and a purchase history built from the real catalogue so
     // the page reads like a finished product rather than an empty shell; the

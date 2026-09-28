@@ -102,4 +102,4 @@ pages keep working during migration. Methods added to `window.DukaApi`:
 - `me()` → `GET /api/v1/auth/me`; returns the authenticated user profile.
 
 No page consumes these methods yet; wiring the sign-in/sign-up flow is a
-separate frontend task (see `ToDO`).
+separate frontend task (see `ToDo.md`).
