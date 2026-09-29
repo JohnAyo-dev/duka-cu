@@ -286,6 +286,29 @@
 .pf_ghost:hover{ border-color:var(--stamp); background:var(--banner-bg); }
 .pf_form{ margin-top:4px; }
 .pf_form .page_submit{ width:auto; padding:10px 26px; }
+.pf_form .field input[readonly]{
+  background:var(--paper);
+  color:var(--muted);
+  cursor:not-allowed;
+}
+.pf_form .field_hint{ display:block; font-size:0.72rem; color:var(--muted); margin-top:5px; line-height:1.5; }
+.pf_form_note{
+  font-size:0.78rem;
+  color:var(--ledger);
+  margin:0 0 12px;
+  min-height:1.2em;
+}
+.pf_form_note.is_error{ color:#a3341f; }
+[data-theme="dark"] .pf_form_note.is_error{ color:#e58a72; }
+
+/* ---------- signed out ---------- */
+.pf_signin .pf_empty{ margin-bottom:16px; }
+.pf_signin_btn{
+  display:inline-block;
+  width:auto;
+  padding:10px 22px;
+  text-decoration:none;
+}
 
 @media (max-width: 860px){
   .pf_cols{ grid-template-columns:minmax(0, 1fr); }

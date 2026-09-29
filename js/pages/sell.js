@@ -193,7 +193,13 @@
           window.location.href = 'product.html?id=' + merged.id + '&posted=1';
           return;
         }
-      } catch (error) { console.warn('Listing API unavailable; saving locally.', error); }
+      } catch (error) {
+        // A rejected session is not an outage. A listing has to belong to a
+        // real account, so send the seller to sign in rather than quietly
+        // keeping their listing on this device where nobody else can see it.
+        if (error && error.status === 401) { window.location.href = 'login.html?next=sell.html'; return; }
+        console.warn('Listing API unavailable; saving locally.', error);
+      }
       listings.unshift(item);
       try{ await saveListings(); }catch(e){ /* still shows locally this session */ }
       window.location.href = 'product.html?id=' + item.id + '&posted=1';
@@ -203,5 +209,5 @@
       await initShell();
       await chatInit();
       if (account.name) document.getElementById('f_seller').value = account.name;
-      if (account.email) document.getElementById('f_email').value = account.email;
+      if (account.email && getPrefs().privacy.showEmailOnListings) document.getElementById('f_email').value = account.email;
     })();

@@ -41,7 +41,7 @@
       pdImages = listingImages(item);
       const gallery = pdImages.length > 1 ? `
             <div class="pd_thumbs">
-              ${pdImages.map((src, i) => `<button type="button" class="pd_thumb${i === 0 ? ' is-active' : ''}" onclick="pdPickImage(${i})" aria-label="View picture ${i + 1} of ${pdImages.length}"><img src="${src}" alt=""></button>`).join('')}
+              ${pdImages.map((src, i) => `<button type="button" class="pd_thumb${i === 0 ? ' is-active' : ''}" onclick="pdPickImage(${i})" aria-label="View picture ${i + 1} of ${pdImages.length}"><img src="${escapeHtml(src)}" alt=""></button>`).join('')}
             </div>
             <div class="pd_img_count">${pdImages.length} pictures</div>` : '';
 
@@ -50,37 +50,37 @@
         ${posted ? '<div class="pd_live_banner">🎉 Your listing is live! This is exactly how buyers see it.</div>' : ''}
         <div class="pd_grid">
           <div class="pd_image_wrap">
-            <img id="pdMain" src="${pdImages[0] || item.image}" alt="${item.title}" onerror="imgFallback(this)">
+            <img id="pdMain" src="${escapeHtml(pdImages[0] || item.image)}" alt="${escapeHtml(item.title)}" onerror="imgFallback(this)">
             ${item.verified ? '<div class="pd_verify_badge">✓ Verified seller</div>' : ''}
             ${gallery}
           </div>
           <div class="pd_info">
             <span class="pd_category">${categoryLabel(item.category)}</span>
-            <h2 class="pd_title">${item.title}</h2>
+            <h2 class="pd_title">${escapeHtml(item.title)}</h2>
             <div class="pd_price">${money(item.price)}</div>
 
             <div class="pd_seller_card">
               <div>
-                <div class="pd_seller_name">${item.verified ? '<span class="verified_check">✓</span>' : ''} ${item.sellerName}</div>
-                <div class="pd_seller_level">${item.sellerLevel || 'Covenant University'}</div>
+                <div class="pd_seller_name">${item.verified ? '<span class="verified_check">✓</span>' : ''} ${escapeHtml(item.sellerName)}</div>
+                <div class="pd_seller_level">${escapeHtml(item.sellerLevel || 'Covenant University')}</div>
               </div>
               <details class="contact_details">
                 <summary>Contact seller</summary>
                 <ul>
-                  <li><b>Phone:</b> ${item.phone}</li>
-                  ${item.snap ? `<li><b>Snap:</b> ${item.snap}</li>` : ''}
-                  ${item.email ? `<li><b>School email:</b> ${item.email}</li>` : ''}
+                  <li><b>Phone:</b> ${escapeHtml(item.phone)}</li>
+                  ${item.snap ? `<li><b>Snap:</b> ${escapeHtml(item.snap)}</li>` : ''}
+                  ${item.email ? `<li><b>School email:</b> ${escapeHtml(item.email)}</li>` : ''}
                 </ul>
               </details>
             </div>
 
             <div class="pd_condition_row">
-              <div><strong>Condition</strong>${item.condition || 'Not specified'}</div>
+              <div><strong>Condition</strong>${escapeHtml(item.condition || 'Not specified')}</div>
               <div><strong>Sold so far</strong>${item.sold || 0}</div>
               <div><strong>Category</strong>${categoryLabel(item.category)}</div>
             </div>
 
-            <p class="pd_description">${item.description || 'No additional details provided by the seller yet.'}</p>
+            <p class="pd_description">${escapeHtml(item.description || 'No additional details provided by the seller yet.')}</p>
 
             <div class="pd_delivery_card">
               <span>${deliveryLabel}</span>
@@ -89,21 +89,52 @@
 
             <div class="pd_actions">
               <button class="btn_secondary" onclick="document.getElementById('pdChatInput').focus()">💬 Chat seller</button>
-              <button class="btn_primary_wide" id="btn_${item.id}" onclick="addToCart('${item.id}')"><span class="btn_label">🛒 Add to cart</span><span class="btn_check">✓ Added to cart</span></button>
+              <button class="btn_primary_wide" id="btn_${escapeHtml(item.id)}" onclick="addToCart('${escapeHtml(item.id)}')"><span class="btn_label">🛒 Add to cart</span><span class="btn_check">✓ Added to cart</span></button>
             </div>
 
+            <div class="pd_owner" id="pdOwner"></div>
+
             <div class="pd_chat_card">
-              <div class="pd_chat_head">Message ${item.sellerName}</div>
+              <div class="pd_chat_head">Message ${escapeHtml(item.sellerName)}</div>
               <div class="pd_chat_body" id="pdChatBody"></div>
               <div class="pd_chat_input_row">
                 <input type="text" id="pdChatInput" placeholder="Type a message…">
-                <button onclick="chatSendForCard('${item.id}')">Send</button>
+                <button onclick="chatSendForCard('${escapeHtml(item.id)}')">Send</button>
               </div>
             </div>
           </div>
         </div>`;
 
       chatFillCard(item.id);
+      renderOwnerTools(item);
+    }
+
+    // Only listings that live on the server have a seller account. The sample
+    // listings that ship with the site have none, so neither tool applies.
+    function renderOwnerTools(item){
+      const box = document.getElementById('pdOwner');
+      if (!box || !item.sellerId) return;
+      const me = sessionProfile && sessionProfile.user;
+      if (me && me.id === item.sellerId){
+        box.innerHTML = '<button type="button" class="set_link" id="pdDelete">Delete this listing</button><p class="page_note set_status" id="pdOwnerMsg" role="status"></p>';
+        document.getElementById('pdDelete').addEventListener('click', async () => {
+          if (!confirm('Delete this listing? Buyers will no longer see it.')) return;
+          try { await DukaApi.deleteListing(item.id); location.href = 'index.html'; }
+          catch (e) { document.getElementById('pdOwnerMsg').textContent = e.message; }
+        });
+        return;
+      }
+      if (!me){ box.innerHTML = '<a class="set_link" href="login.html?next=' + encodeURIComponent('product.html') + '">Sign in to report this listing</a>'; return; }
+      box.innerHTML = '<details class="pd_report"><summary class="set_link">Report this listing</summary>' +
+        '<div class="set_field"><label for="pdReason">What is wrong with it?</label><select id="pdReason" class="set_select">' +
+        '<option value="scam">It looks like a scam</option><option value="prohibited">It should not be sold here</option><option value="wrong_category">Wrong category</option><option value="inappropriate">Inappropriate</option><option value="other">Something else</option></select></div>' +
+        '<div class="set_field"><input id="pdNote" class="set_input" maxlength="500" placeholder="Anything else we should know? (optional)"></div>' +
+        '<button type="button" class="page_submit" id="pdReportSend">Send report</button><p class="page_note set_status" id="pdOwnerMsg" role="status"></p></details>';
+      document.getElementById('pdReportSend').addEventListener('click', async () => {
+        const msg = document.getElementById('pdOwnerMsg');
+        try { await DukaApi.reportListing(item.id, document.getElementById('pdReason').value, document.getElementById('pdNote').value.trim()); msg.textContent = 'Thank you. We will take a look.'; document.getElementById('pdReportSend').disabled = true; }
+        catch (e) { msg.textContent = e.message; }
+      });
     }
 
     (async function(){ await initShell(); await chatInit(); render(); })();

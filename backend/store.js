@@ -1,7 +1,9 @@
 const fs = require('node:fs/promises');
 const path = require('node:path');
 
-const STORE_PATH = path.join(__dirname, 'data', 'store.json');
+// Tests point DUKA_STORE_PATH at a throwaway file, so a test run can never
+// read or overwrite the data the developer is actually working against.
+const STORE_PATH = process.env.DUKA_STORE_PATH || path.join(__dirname, 'data', 'store.json');
 
 function seed() {
   return {

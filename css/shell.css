@@ -1,0 +1,90 @@
+/* Shared shell rules, loaded after each page's own stylesheet.
+   base.css, index.css and budget.css each carry their own copy of the header
+   and drawer rules, so anything that has to look the same everywhere lives
+   here once instead of being pasted three times. */
+
+/* ---- Drawer icons (drawn as inline SVG in js/nav.js) ---- */
+.nav_icon{ width:24px; height:24px; display:inline-flex; align-items:center; justify-content:center; flex:0 0 auto; font-size:0; line-height:0; }
+.nav_icon svg{ width:22px; height:22px; display:block; }
+.nav_item:hover .nav_icon, .nav_item.is-active .nav_icon{ color:var(--stamp, currentColor); }
+.nav_close{ display:inline-flex; align-items:center; justify-content:center; }
+.nav_close svg{ width:18px; height:18px; display:block; }
+
+/* ---- Mascot in dark mode ----
+   The artwork has a near-black outline, cap and shoes, which vanish against a
+   dark page. A thin light "sticker" outline is drawn around the alpha edge, so
+   the character keeps its shape without being recoloured. Light mode is left
+   exactly as it was. */
+:root[data-theme="dark"] :is(.logo-mascot, .hero_mascot, .rider_mascot, .footer_mascot, .card_mascot, .budget_mascot, .budget_empty_mascot, .mascot_sticker),
+:root[data-theme="dark"] :is(.img_placeholder, .pd_img_placeholder, .empty_state, .thread_empty, .sidebar_empty, .cart_empty) img{
+  filter:
+    drop-shadow(1px 0 0 #f4ead6) drop-shadow(-1px 0 0 #f4ead6)
+    drop-shadow(0 1px 0 #f4ead6) drop-shadow(0 -1px 0 #f4ead6)
+    drop-shadow(0 2px 6px rgba(0,0,0,.45));
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]):not([data-theme="dark"]) :is(.logo-mascot, .hero_mascot, .rider_mascot, .footer_mascot, .card_mascot, .budget_mascot, .budget_empty_mascot, .mascot_sticker){
+    filter: drop-shadow(1px 0 0 #f4ead6) drop-shadow(-1px 0 0 #f4ead6) drop-shadow(0 1px 0 #f4ead6) drop-shadow(0 -1px 0 #f4ead6) drop-shadow(0 2px 6px rgba(0,0,0,.45));
+  }
+}
+/* the small logo mascot is only 36px, so its outline is a hair thinner */
+:root[data-theme="dark"] .logo-mascot{
+  filter: drop-shadow(.8px 0 0 #f4ead6) drop-shadow(-.8px 0 0 #f4ead6) drop-shadow(0 .8px 0 #f4ead6) drop-shadow(0 -.8px 0 #f4ead6);
+}
+
+/* ---- Hero mascot: rest in the top corner, clear of the filter controls ---- */
+.hero_mascot{ top:12px; transform:none; z-index:1; }
+
+/* ---- Navbar: quieter links, one account entry ---- */
+
+/* ---- Small pieces used by the new pages ---- */
+.role_choice{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:6px 0 4px; }
+.role_option{ display:flex; flex-direction:column; align-items:flex-start; gap:6px; text-align:left; padding:16px 14px; border:1.5px solid var(--border, #d8ceb6); border-radius:12px; background:var(--card, transparent); color:inherit; font:inherit; cursor:pointer; transition:border-color .15s, transform .15s, box-shadow .15s; }
+.role_option:hover{ border-color:var(--stamp, #a8322d); transform:translateY(-1px); }
+.role_option:focus-visible{ outline:2px solid var(--stamp, #a8322d); outline-offset:2px; }
+.role_option svg{ width:28px; height:28px; color:var(--stamp, #a8322d); }
+.role_option strong{ font-size:1.02rem; }
+.role_option span{ font-size:.84rem; opacity:.75; line-height:1.35; }
+.role_chip{ display:inline-flex; align-items:center; gap:8px; font-size:.86rem; padding:5px 6px 5px 12px; border-radius:999px; border:1px solid var(--border, #d8ceb6); margin-bottom:10px; }
+.role_chip button{ border:0; background:transparent; color:var(--stamp, #a8322d); font:inherit; font-size:.82rem; text-decoration:underline; cursor:pointer; padding:2px 8px; }
+@media (max-width:420px){ .role_choice{ grid-template-columns:1fr; } }
+
+/* ---- Settings page ---- */
+.set_card{ margin-bottom:22px; }
+.set_row{ display:flex; align-items:center; justify-content:space-between; gap:16px; padding:12px 0; border-top:1px solid var(--border, #e3d9c2); }
+.set_card > h3 + .set_row, .set_card > .page_note + .set_row{ border-top:0; }
+.set_text{ display:flex; flex-direction:column; gap:3px; min-width:0; }
+.set_text strong{ font-size:.98rem; }
+.set_text span{ font-size:.84rem; opacity:.72; line-height:1.4; }
+.set_select, .set_input, .set_textarea{ font:inherit; color:inherit; background:var(--card, transparent); border:1px solid var(--border, #d8ceb6); border-radius:8px; padding:9px 10px; max-width:100%; }
+.set_textarea{ width:100%; resize:vertical; box-sizing:border-box; }
+.set_input{ width:100%; box-sizing:border-box; }
+.set_field{ display:flex; flex-direction:column; gap:6px; margin-bottom:12px; }
+.set_field label{ font-size:.86rem; font-weight:600; }
+.set_switch{ position:relative; flex:0 0 auto; width:46px; height:26px; border-radius:999px; border:1px solid var(--border, #cfc4aa); background:var(--border, #d8ceb6); cursor:pointer; padding:0; transition:background .18s; }
+.set_switch span{ position:absolute; top:2px; left:2px; width:20px; height:20px; border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.3); transition:transform .18s; }
+.set_switch.is-on{ background:var(--good, #2f6b4f); border-color:var(--good, #2f6b4f); }
+.set_switch.is-on span{ transform:translateX(20px); }
+.set_switch:focus-visible, .set_select:focus-visible, .set_input:focus-visible, .set_textarea:focus-visible{ outline:2px solid var(--stamp, #a8322d); outline-offset:2px; }
+.set_list{ list-style:none; margin:0; padding:0; }
+.set_list li{ display:flex; justify-content:space-between; gap:12px; align-items:center; padding:10px 0; border-top:1px solid var(--border, #e3d9c2); }
+.set_list li:first-child{ border-top:0; }
+.set_list a{ color:inherit; }
+.set_when{ display:block; font-size:.8rem; opacity:.65; margin-top:2px; }
+.set_order strong{ display:block; font-size:.94rem; }
+.set_pill{ flex:0 0 auto; font-size:.76rem; padding:3px 10px; border-radius:999px; border:1px solid var(--border, #cfc4aa); white-space:nowrap; }
+.set_pill_paid{ color:var(--good, #2f6b4f); border-color:currentColor; }
+.set_pill_cancelled{ opacity:.6; }
+.set_link{ margin-top:8px; border:0; background:transparent; color:var(--stamp, #a8322d); font:inherit; text-decoration:underline; cursor:pointer; padding:4px 0; }
+.set_status{ min-height:1.2em; margin-top:8px; }
+@media (max-width:520px){ .set_row{ flex-direction:column; align-items:flex-start; } }
+
+/* The draggable hero mascot sits at z-index 9999 so it can be carried over the
+   page; while the menu is open it has to stay underneath the drawer. */
+body.nav_locked #heroMascot, body.nav_locked .hero_mascot{ z-index:1 !important; }
+
+/* An element's own display rule must never beat the hidden attribute. */
+.role_chip[hidden], .role_choice[hidden], #roleStep[hidden], #signedInPanel[hidden], #providerBlock[hidden], .set_link[hidden]{ display:none !important; }
+/* The brand link on the sign-in page should look like the site logo, not a default link. */
+a.login_brand{ color:inherit; text-decoration:none; }
+a.login_brand h1{ color:inherit; }

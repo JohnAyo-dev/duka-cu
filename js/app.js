@@ -4,13 +4,16 @@
 // the resilient storage layer, and the bits of the header (cart badge,
 // account name) that appear on every page.
 
+// Listings that were taken down on purpose. Also filtered out of anything a
+// browser cached earlier or a server still returns, so a removed listing (and
+// the contact details on it) cannot come back from a stale copy.
+const REMOVED_LISTING_IDS = ['l6'];
 const DEFAULT_LISTINGS = [
   {id:'l1', title:'MacBook Air M1 (8GB / 256GB) — Excellent Condition', category:'electronics', price:450000, condition:'Excellent', description:"Barely used, mostly for lectures and light editing. Battery health is at 91% and it comes with the original charger and box. No scratches on the lid or trackpad.", verified:true, sellerName:'Ayo', sellerLevel:'200L', image:'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800&auto=format&fit=crop&q=60', delivery:'duka', phone:'+234 803 210 4477', snap:'ayo_deals200', email:'ayo.o.20034521@stu.cu.edu.ng', createdAt:14, sold:34},
   {id:'l2', title:'Rechargeable LED Desk Lamp', category:'hostel', price:8500, condition:'Good', description:"Three brightness settings and a USB-C port for charging. Great for late-night reading without waking your roommate. Selling because I'm switching to a wall-mounted one.", verified:false, sellerName:'Tolu', sellerLevel:'400L', image:'https://images.unsplash.com/photo-1544816155-12df9643f363?w=800&auto=format&fit=crop&q=60', delivery:'self', phone:'+234 810 552 9903', snap:'tolu_hostel', email:'tolu.a.19087765@stu.cu.edu.ng', createdAt:13, sold:12},
   {id:'l3', title:'Sony WH-1000XM4 Noise Cancelling', category:'audio', price:120000, condition:'Excellent', description:"Industry-leading noise cancellation, perfect for the library or a noisy hostel. Comes with the carry case and both cables. Selling to upgrade to over-ear studio monitors.", verified:true, sellerName:'David', sellerLevel:'300L', image:'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&auto=format&fit=crop&q=60', delivery:'duka', phone:'+234 706 118 2290', snap:'dave_audio300', email:'david.o.20112233@stu.cu.edu.ng', createdAt:12, sold:21},
   {id:'l4', title:'Canon EOS Rebel T7 DSLR Kit', category:'photography', price:210000, condition:'Good', description:"Includes the 18-55mm kit lens, a 32GB SD card, and a shoulder bag. Great starter camera for event coverage gigs around campus. Shutter count is under 8,000.", verified:true, sellerName:'Grace', sellerLevel:'100L', image:'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=800&auto=format&fit=crop&q=60', delivery:'self', phone:'+234 902 447 6810', snap:'grace_lens', email:'grace.n.20245567@stu.cu.edu.ng', createdAt:11, sold:8},
   {id:'l5', title:'Jollof Rice & Chicken Pack', category:'food', price:2000, condition:'Freshly made', description:"Made to order — smoky party-style jollof with a full quarter chicken and coleslaw on the side. Orders placed before 12pm are ready for evening pickup or Duka delivery.", verified:true, sellerName:'Blessing', sellerLevel:'200L', image:'https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?w=800&auto=format&fit=crop&q=60', delivery:'duka', phone:'+234 814 220 6631', snap:'blessings_kitchen', email:'blessing.a.20198810@stu.cu.edu.ng', createdAt:10, sold:120},
-  {id:'l6', title:'Beef Suya (10 sticks)', category:'food', price:3500, condition:'Freshly made', description:"Grilled fresh every evening with extra yaji spice on request. Wrapped hot and ready for pickup near the main gate, or add Duka delivery straight to your hostel.", verified:true, sellerName:'Kunle', sellerLevel:'300L', image:'https://images.unsplash.com/photo-1529006557810-274b9b2fc783?w=800&auto=format&fit=crop&q=60', delivery:'duka', phone:'+234 705 831 4402', snap:'kunle_suyaspot', email:'kunle.o.20176652@stu.cu.edu.ng', createdAt:9, sold:98},
   {id:'l7', title:'Amala & Ewedu Swallow Pack', category:'food', price:1500, condition:'Freshly made', description:"Smooth amala with ewedu and a rich gbegiri blend, packed to travel well. A campus favourite for lunch between back-to-back classes.", verified:false, sellerName:'Faith', sellerLevel:'400L', image:'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=800&auto=format&fit=crop&q=60', delivery:'self', phone:'+234 813 990 2217', snap:'faiths_amala', email:'faith.o.20209934@stu.cu.edu.ng', createdAt:8, sold:41},
   {id:'l8', title:'MTH 101 & PHY 101 Past Questions + Textbooks Bundle', category:'books', price:6000, condition:'Good', description:"Two years of solved past questions plus the recommended textbooks for both courses, lightly highlighted. Saved me a lot of time before exams — hoping it does the same for you.", verified:true, sellerName:'Miracle', sellerLevel:'200L', image:'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=800&auto=format&fit=crop&q=60', delivery:'self', phone:'+234 812 004 5521', snap:'miracle_reads', email:'miracle.e.20233310@stu.cu.edu.ng', createdAt:7, sold:19},
   {id:'l9', title:'Engineering Drawing Set + Scientific Calculator', category:'books', price:4500, condition:'Like new', description:"Complete drawing set with compass, set squares, and protractor, plus a Casio fx-991 calculator. Used for one semester only, no missing pieces.", verified:false, sellerName:'Chidi', sellerLevel:'100L', image:'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=800&auto=format&fit=crop&q=60', delivery:'self', phone:'+234 705 662 9981', snap:'chidi_draws', email:'chidi.n.20256689@stu.cu.edu.ng', createdAt:6, sold:5},
@@ -24,6 +27,10 @@ const DEFAULT_LISTINGS = [
 let listings = [];
 let cart = [];       // {id, title, price, qty} — per-device
 let account = {name:'', email:''}; // per-device
+// The signed-in account as the server sees it, or null when nobody is signed
+// in. Filled in by loadSessionProfile() so pages can read real stats without
+// each one making its own copy of the same request.
+let sessionProfile = null;
 
 // ---------- storage layer ----------
 // Tries window.storage first (only exists while previewed inside
@@ -55,11 +62,11 @@ async function storageSet(key, value, shared){
 
 async function loadListings(){
   if (window.DukaApi && await DukaApi.health()) {
-    try { const remote = await DukaApi.listings(); const byId = new Map(DEFAULT_LISTINGS.map(item => [item.id, item])); remote.forEach(item => byId.set(item.id, item)); listings = [...byId.values()]; return; }
+    try { const remote = await DukaApi.listings(); const byId = new Map(DEFAULT_LISTINGS.map(item => [item.id, item])); remote.forEach(item => byId.set(item.id, item)); listings = [...byId.values()].filter(item => !REMOVED_LISTING_IDS.includes(item.id)); return; }
     catch (e) { /* Use the offline catalogue below. */ }
   }
   const raw = await storageGet('duka-listings', true);
-  if (raw){ try{ listings = JSON.parse(raw); return; }catch(e){ /* reseed below */ } }
+  if (raw){ try{ listings = JSON.parse(raw).filter(item => !REMOVED_LISTING_IDS.includes(item.id)); return; }catch(e){ /* reseed below */ } }
   listings = DEFAULT_LISTINGS.slice();
   await storageSet('duka-listings', JSON.stringify(listings), true);
 }
@@ -77,7 +84,29 @@ async function loadAccount(){
 }
 async function saveAccountData(){ await storageSet('duka-account', JSON.stringify(account), false); }
 
+// Pulls the signed-in account from the server and folds it into the per-device
+// copy, so the header name and the profile page agree. Stays quiet when there
+// is no token or the backend is unreachable: the local copy is the fallback,
+// not a claim that the person is signed in.
+async function loadSessionProfile(){
+  sessionProfile = null;
+  if (!window.DukaApi || !DukaApi.hasToken()) return null;
+  try {
+    const profile = await DukaApi.profile();
+    if (!profile || !profile.user) return null;
+    sessionProfile = profile;
+    Object.assign(account, profile.user);
+    await saveAccountData();
+    return profile;
+  }catch(e){ return null; }
+}
+
 // ---------- shared helpers ----------
+// Listing text (titles, descriptions, contact lines) is typed by other students,
+// so it is always escaped before it goes anywhere near innerHTML.
+function escapeHtml(value){
+  return String(value == null ? '' : value).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
 function money(n){ return '₦' + Number(n).toLocaleString('en-NG'); }
 function imgFallback(img){
   if (!img || img.dataset.fallback === '1') return;
@@ -99,7 +128,8 @@ function updateCartBadge(){
 }
 function applyAccountToHeader(){
   const label = document.getElementById('accountLabel');
-  if (label) label.textContent = account.name ? account.name : 'Profile';
+  // One account entry: the person's name when there is a real session, otherwise "Sign in".
+  if (label) label.textContent = (sessionProfile && account.name) ? account.name : 'Sign in';
 }
 
 // ---------- theme (dark mode) ----------
@@ -165,6 +195,42 @@ function injectThemeButton(){
 window.setTheme = setTheme;
 window.toggleTheme = toggleTheme;
 
+// The page this one is, as a bare name, for ?next= links. Only ever a plain
+// .html name so the sign-in page cannot be used to bounce anyone off-site.
+function currentPageName(){
+  const file = location.pathname.split('/').pop();
+  return /^[A-Za-z0-9_-]+\.html$/.test(file) ? file : 'index.html';
+}
+
+// Signed out, the header gets an explicit way in. Injected rather than added
+// to eight copies of the same markup, the same way the theme button is.
+function injectSignInLink(){
+  const nav = document.querySelector('.header .information');
+  return; // The account link itself now says "Sign in" when signed out, so there is no second link.
+  if (!nav || sessionProfile || document.getElementById('signInLink')) return;
+  const label = document.getElementById('accountLabel');
+  const anchor = label ? label.closest('a') : null;
+  const link = document.createElement('a');
+  link.id = 'signInLink';
+  link.href = 'login.html?next=' + encodeURIComponent(currentPageName());
+  link.innerHTML = '<p>Sign in</p>';
+  nav.insertBefore(link, anchor || nav.firstChild);
+}
+
+// The other half of the same problem: the header account link is the way out
+// of a signed-in state, so it has to stop pointing at the profile when there
+// is no profile to show.
+function syncAccountLink(){
+  const label = document.getElementById('accountLabel');
+  const anchor = label ? label.closest('a') : null;
+  if (!anchor) return;
+  if (sessionProfile) {
+    anchor.href = 'profile.html';
+  } else {
+    anchor.href = 'login.html?next=' + encodeURIComponent(currentPageName());
+  }
+}
+
 // Call at the top of every page's own script. Loads listings/cart/account
 // and updates the header pieces that appear on every page (cart badge,
 // account name). Each page then does its own rendering after this resolves.
@@ -174,8 +240,12 @@ async function initShell(){
   }catch(e){
     if (!listings.length) listings = DEFAULT_LISTINGS.slice();
   }
+  // After the local copies, so a signed-in name always wins over a stale one.
+  await loadSessionProfile();
   updateCartBadge();
   applyAccountToHeader();
+  syncAccountLink();
+  injectSignInLink();
   injectThemeButton();
   await initTheme();
 }
@@ -239,17 +309,65 @@ function removeTypingIndicator(paneId, el){
   if (el && el.parentNode) el.parentNode.removeChild(el);
 }
 
-// ---------- payment (Paystack Titan demo key — swap for your live/test public
-// key before going live; Monnify follows the same load-SDK pattern) ----------
-function payWithPaystackTitan(email, amountKobo){
-  if (typeof PaystackPop === 'undefined') { alert('Payment demo is not available in this preview.'); return; }
-  var handler = PaystackPop.setup({
-    key: 'pk_test_xxxxxxxxxxxxxxxxxxxxx',
-    email: email,
-    amount: amountKobo,
-    callback: function (response) { console.log('Payment complete, reference:', response.reference); },
-    onClose: function () { console.log('Payment window closed'); }
+// ---------- payment ----------
+// The Paystack *public* key comes from the server (GET /config, set with
+// PAYSTACK_PUBLIC_KEY), never from this file. The order and its price are made
+// by the server first; the browser only opens the payment window for that
+// reference. "Paid" is decided by the server when Paystack's signed webhook
+// arrives, not by anything this page reports.
+function loadScriptOnce(src){
+  return new Promise((resolve, reject) => {
+    if (document.querySelector('script[data-src="' + src + '"]')) return resolve();
+    const el = document.createElement('script');
+    el.src = src; el.dataset.src = src; el.onload = () => resolve(); el.onerror = () => reject(new Error('Could not load the payment window. Check your connection.'));
+    document.head.appendChild(el);
   });
-  handler.openIframe();
 }
-function payWithMonnify(email, amountNaira){ console.log('Wire up Monnify SDK here with your merchant key.'); }
+async function payWithPaystackTitan(email, amountKobo, reference, publicKey){
+  await loadScriptOnce('https://js.paystack.co/v1/inline.js');
+  return new Promise(resolve => {
+    const handler = PaystackPop.setup({
+      key: publicKey, email, amount: amountKobo, currency: 'NGN', ref: reference,
+      callback: function (response) { resolve({ ok: true, reference: response.reference }); },
+      onClose: function () { resolve({ ok: false, reason: 'closed' }); }
+    });
+    handler.openIframe();
+  });
+}
+
+// Same rule the server applies (backend/server.js deliveryFeeFor), so the
+// cart shows the number the order will be charged. The server's is the one
+// that counts; this is only for display.
+const DELIVERY_FEES = { food: 500, other: 2500 };
+function deliveryFeeForCart(lines){
+  const delivered = lines.map(line => getListing(line.id)).filter(item => item && item.delivery === 'duka');
+  let fee = 0;
+  if (delivered.some(item => item.category === 'food')) fee += DELIVERY_FEES.food;
+  if (delivered.some(item => item.category !== 'food')) fee += DELIVERY_FEES.other;
+  return fee;
+}
+
+// ---------- preferences and search history (per device, synced when signed in) ----------
+const PREFS_KEY = 'local:duka-prefs';
+const SEARCH_KEY = 'local:duka-search-history';
+function defaultPrefs(){ return { theme: 'system', privacy: { saveSearchHistory: true, showEmailOnListings: true }, payment: { preferred: 'paystack-titan' } }; }
+function mergePrefs(base, input){
+  const out = { theme: base.theme, privacy: { ...base.privacy }, payment: { ...base.payment } };
+  if (!input || typeof input !== 'object') return out;
+  if (['system', 'light', 'dark'].includes(input.theme)) out.theme = input.theme;
+  if (input.privacy) for (const key of Object.keys(out.privacy)) if (typeof input.privacy[key] === 'boolean') out.privacy[key] = input.privacy[key];
+  if (input.payment && ['paystack-titan', 'monnify'].includes(input.payment.preferred)) out.payment.preferred = input.payment.preferred;
+  return out;
+}
+function getPrefs(){ try { return mergePrefs(defaultPrefs(), JSON.parse(localStorage.getItem(PREFS_KEY) || 'null')); } catch (e) { return defaultPrefs(); } }
+function setPrefs(prefs){
+  try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch (e) {}
+  if (window.DukaApi && DukaApi.hasToken()) DukaApi.savePreferences(prefs).catch(() => {});
+}
+function getSearchHistory(){ try { const list = JSON.parse(localStorage.getItem(SEARCH_KEY) || '[]'); return Array.isArray(list) ? list.filter(x => x && typeof x.q === 'string') : []; } catch (e) { return []; } }
+function saveSearchHistory(list){ try { localStorage.setItem(SEARCH_KEY, JSON.stringify(list.slice(0, 30))); } catch (e) {} }
+function recordSearch(query){
+  const q = String(query || '').trim().slice(0, 80);
+  if (!q || !getPrefs().privacy.saveSearchHistory) return;
+  saveSearchHistory([{ q, at: Date.now() }, ...getSearchHistory().filter(x => x.q.toLowerCase() !== q.toLowerCase())]);
+}

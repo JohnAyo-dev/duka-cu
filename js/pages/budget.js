@@ -2,6 +2,32 @@
     let income = 0;
     let expenses = [];
 
+    // Saved on this device, and to the account when signed in. The server copy
+    // wins when it has data; otherwise what is on this device is uploaded once.
+    const BUDGET_KEY = 'local:duka-budget';
+    let saveTimer = null;
+    function esc(value){ return String(value == null ? '' : value).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
+    function persist(){
+      try { localStorage.setItem(BUDGET_KEY, JSON.stringify({ income, expenses })); } catch(e){}
+      if (!window.DukaApi || !DukaApi.hasToken()) return;
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => { DukaApi.saveBudget({ income, expenses }).catch(() => {}); }, 600);
+    }
+    function loadLocal(){
+      try {
+        const saved = JSON.parse(localStorage.getItem(BUDGET_KEY) || 'null');
+        if (saved && Array.isArray(saved.expenses)) { income = Number(saved.income) || 0; expenses = saved.expenses.filter(e => e && e.name && Number(e.amount) > 0).map(e => ({ name: String(e.name), amount: Number(e.amount), category: String(e.category || 'Other') })); }
+      } catch(e){}
+    }
+    async function syncWithAccount(){
+      if (!window.DukaApi || !DukaApi.hasToken()) return;
+      try {
+        const remote = await DukaApi.budget();
+        if (remote && (remote.income > 0 || (remote.expenses || []).length)) { income = remote.income; expenses = remote.expenses; try { localStorage.setItem(BUDGET_KEY, JSON.stringify({ income, expenses })); } catch(e){} render(); }
+        else if (income > 0 || expenses.length) { DukaApi.saveBudget({ income, expenses }).catch(() => {}); }
+      } catch(e){}
+    }
+
     function updateThemeIcon(){
       const ic = document.querySelector('#themeBtn .theme_icon');
       if (ic) ic.textContent = document.documentElement.getAttribute('data-theme') === 'dark' ? '☀' : '☾';
@@ -24,7 +50,8 @@
 
     function setIncome(){
       const val = parseFloat(document.getElementById('income_input').value);
-      income = isNaN(val) ? 0 : val;
+      income = isNaN(val) || val < 0 ? 0 : val;
+      persist();
       render();
     }
 
@@ -40,6 +67,7 @@
       if(!name || isNaN(amount) || amount <= 0) return;
 
       expenses.push({ name, amount, category });
+      persist();
       nameEl.value = '';
       amountEl.value = '';
       render();
@@ -47,6 +75,7 @@
 
     function removeExpense(index){
       expenses.splice(index, 1);
+      persist();
       render();
     }
 
@@ -80,13 +109,16 @@
       }
       body.innerHTML = expenses.map((e, i) => `
         <tr>
-          <td>${e.name}</td>
-          <td>${e.category}</td>
+          <td>${esc(e.name)}</td>
+          <td>${esc(e.category)}</td>
           <td class="amount">${formatNaira(e.amount)}</td>
           <td class="remove"><button onclick="removeExpense(${i})">Remove</button></td>
         </tr>
       `).join('');
     }
 
+    loadLocal();
+    document.getElementById('income_input').value = income || '';
     render();
+    syncWithAccount();
   

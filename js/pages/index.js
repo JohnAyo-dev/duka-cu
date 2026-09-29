@@ -9,16 +9,16 @@
       return `
         <div class="product_card sb-card">
           <div class="perf" data-sb></div>
-          <a class="card_image" data-sb="image" href="product.html?id=${item.id}">
+          <a class="card_image" data-sb="image" href="product.html?id=${encodeURIComponent(item.id)}">
             ${verifyBadge}
-            <img src="${item.image}" alt="${item.title}" onerror="imgFallback(this)">
+            <img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.title)}" onerror="imgFallback(this)">
           </a>
           <div class="card_content">
             <span class="category" data-sb>${categoryLabel(item.category)}</span>
-            <h4 class="product_title" data-sb><a href="product.html?id=${item.id}" class="title_link">${item.title}</a></h4>
+            <h4 class="product_title" data-sb><a href="product.html?id=${encodeURIComponent(item.id)}" class="title_link">${escapeHtml(item.title)}</a></h4>
             <div class="card_meta">
               <span class="price" data-sb>${money(item.price)}</span>
-              <span class="seller_row" data-sb>${verifiedCheck}<span class="seller">${item.sellerName}${item.sellerLevel ? ' · ' + item.sellerLevel : ''}</span></span>
+              <span class="seller_row" data-sb>${verifiedCheck}<span class="seller">${escapeHtml(item.sellerName)}${item.sellerLevel ? ' · ' + escapeHtml(item.sellerLevel) : ''}</span></span>
             </div>
             <div class="delivery_row" data-sb>
               ${deliveryTag}
@@ -27,14 +27,14 @@
             <details class="contact_details" data-sb>
               <summary>Contact seller</summary>
               <ul>
-                <li><b>Phone:</b> ${item.phone}</li>
-                ${item.snap ? `<li><b>Snap:</b> ${item.snap}</li>` : ''}
-                ${item.email ? `<li><b>School email:</b> ${item.email}</li>` : ''}
+                <li><b>Phone:</b> ${escapeHtml(item.phone)}</li>
+                ${item.snap ? `<li><b>Snap:</b> ${escapeHtml(item.snap)}</li>` : ''}
+                ${item.email ? `<li><b>School email:</b> ${escapeHtml(item.email)}</li>` : ''}
               </ul>
             </details>
             <div class="card_actions">
-              <button class="btn_msg" data-sb="pop" onclick="chatOpenFromCard('${item.id}')">💬 Message</button>
-              <button class="btn_view" data-sb="pop" id="btn_${item.id}" onclick="addToCart('${item.id}')"><span class="btn_label">Add to cart</span><span class="btn_check">Added ✓</span></button>
+              <button class="btn_msg" data-sb="pop" onclick="chatOpenFromCard('${escapeHtml(item.id)}')">💬 Message</button>
+              <button class="btn_view" data-sb="pop" id="btn_${escapeHtml(item.id)}" onclick="addToCart('${escapeHtml(item.id)}')"><span class="btn_label">Add to cart</span><span class="btn_check">Added ✓</span></button>
             </div>
           </div>
         </div>`;
@@ -112,7 +112,25 @@
       }
     }
 
-    document.getElementById('searchForm').addEventListener('submit', (e) => { e.preventDefault(); renderGrids(); });
+    (function(){ const q = new URLSearchParams(location.search).get('q'); if (q) document.getElementById('searchInput').value = q.slice(0, 80); })();
+    document.getElementById('searchForm').addEventListener('submit', (e) => { e.preventDefault(); recordSearch(document.getElementById('searchInput').value); renderGrids(); });
+
+    // The x on the verification / payment banner removes the banner from the
+    // page (and its "show again" bar) and remembers that on this device.
+    (function(){
+      const KEY = 'local:duka-trust-dismissed';
+      function removeBanner(){
+        ['trustStrip', 'trustRestore'].forEach(function(id){ const el = document.getElementById(id); if (el) el.remove(); });
+      }
+      let dismissed = false;
+      try { dismissed = localStorage.getItem(KEY) === '1'; } catch (e) {}
+      if (dismissed) { removeBanner(); return; }
+      const close = document.getElementById('trustClose');
+      if (close) close.addEventListener('click', function(){
+        removeBanner();
+        try { localStorage.setItem(KEY, '1'); } catch (e) {}
+      });
+    })();
     document.getElementById('category').addEventListener('change', renderGrids);
     document.getElementById('verification').addEventListener('change', renderGrids);
     document.getElementById('regular_filter').addEventListener('change', renderGrids);

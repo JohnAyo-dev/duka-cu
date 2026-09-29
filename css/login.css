@@ -1,0 +1,155 @@
+/* Sign-in page. Reuses base.css tokens and card idiom, so it reads as the same
+   product rather than a bolted-on screen. */
+
+.login_body{ min-height:100vh; display:flex; flex-direction:column; }
+
+.login_wrap{ width:100%; max-width:640px; margin:0 auto; padding:44px 32px 60px; }
+
+.login_brand{ display:block; text-align:center; margin-bottom:22px; }
+.login_brand h1{
+  font-family:'Fraunces',serif;
+  font-size:2rem;
+  font-weight:700;
+  letter-spacing:-0.01em;
+}
+.login_brand h1 span{ color:var(--stamp); }
+
+.login_card{ padding:30px 32px 32px; }
+
+/* Segmented control shared by both forms. */
+.login_tabs{
+  display:flex;
+  gap:4px;
+  padding:4px;
+  margin-bottom:16px;
+  background:var(--paper);
+  border:1px solid var(--line);
+  border-radius:6px;
+}
+.login_tab{
+  flex:1;
+  padding:9px 10px;
+  background:transparent;
+  border:0;
+  border-radius:4px;
+  font-family:'Inter',sans-serif;
+  font-size:0.86rem;
+  font-weight:600;
+  color:var(--muted);
+  cursor:pointer;
+  transition:background-color 0.15s var(--ease-out), color 0.15s var(--ease-out);
+}
+.login_tab:hover{ color:var(--ink); }
+.login_tab.is-active{ background:var(--paper-raised); color:var(--ink); box-shadow:var(--shadow-badge); }
+
+.login_note{ font-size:0.84rem; color:var(--muted); line-height:1.55; margin:0 0 18px; }
+
+.field_hint{ display:block; margin-top:5px; font-size:0.72rem; color:var(--muted); line-height:1.45; }
+
+.login_remember{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin:4px 0 18px;
+  font-size:0.82rem;
+  color:var(--ink);
+  cursor:pointer;
+  user-select:none;
+}
+.login_remember input{ width:16px; height:16px; accent-color:var(--ledger); cursor:pointer; }
+
+/* Filled primary. The outline .btn_view is for secondary actions, so the main
+   form submit gets the stamp colour. */
+.btn_solid{
+  width:100%;
+  padding:11px 16px;
+  background:var(--stamp);
+  color:#FAF5E9;
+  border:1px solid var(--stamp);
+  border-radius:4px;
+  font-family:'Inter',sans-serif;
+  font-size:0.9rem;
+  font-weight:600;
+  cursor:pointer;
+  transition:background-color 0.15s var(--ease-out), transform 0.12s var(--ease-out);
+}
+.btn_solid:hover{ background:var(--stamp-hover); border-color:var(--stamp-hover); }
+.btn_solid:active{ transform:scale(0.985); }
+.btn_solid[disabled]{ opacity:0.6; cursor:not-allowed; }
+
+.login_alert{
+  margin-bottom:16px;
+  padding:10px 12px;
+  border:1px solid var(--stamp);
+  border-left-width:3px;
+  border-radius:4px;
+  background:var(--tag-self);
+  color:var(--ink);
+  font-size:0.82rem;
+  line-height:1.5;
+}
+.login_alert.is-good{ border-color:var(--ledger); }
+
+.login_divider{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin:22px 0 14px;
+  color:var(--muted);
+  font-size:0.74rem;
+  text-transform:uppercase;
+  letter-spacing:0.08em;
+}
+.login_divider::before, .login_divider::after{ content:''; flex:1; height:1px; background:var(--line); }
+
+.login_providers{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+
+.provider_btn{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  padding:9px 8px;
+  background:var(--paper);
+  color:var(--ink);
+  border:1px solid var(--line);
+  border-radius:4px;
+  font-family:'Inter',sans-serif;
+  font-size:0.8rem;
+  font-weight:600;
+  cursor:pointer;
+  transition:border-color 0.15s var(--ease-out), background-color 0.15s var(--ease-out);
+}
+.provider_btn:hover:not([disabled]){ border-color:var(--ink); }
+.provider_btn[disabled]{ cursor:not-allowed; opacity:0.62; }
+
+/* Monograms rather than the providers' trademarked logo artwork: legible,
+   dependency-free, and it themes with the rest of the UI. */
+.provider_mark{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:20px; height:20px;
+  border-radius:50%;
+  color:#FAF5E9;
+  font-size:0.72rem;
+  font-weight:700;
+  font-family:'Inter',sans-serif;
+  flex:0 0 auto;
+}
+.provider_google{ background:#4285F4; }
+.provider_apple{ background:#211D19; }
+:root[data-theme="dark"] .provider_apple{ background:#EFE9DD; color:#211D19; }
+.provider_facebook{ background:#1877F2; }
+
+.login_provider_note{ margin:12px 0 0; font-size:0.75rem; color:var(--muted); line-height:1.5; text-align:center; }
+
+.login_foot{ margin:20px 0 0; text-align:center; font-size:0.8rem; }
+.login_foot a{ color:var(--muted); }
+.login_foot a:hover{ color:var(--stamp); }
+
+@media (max-width:600px){
+  .login_wrap{ padding:28px 16px 48px; }
+  .login_card{ padding:24px 20px 26px; }
+  .login_providers{ grid-template-columns:1fr; }
+}

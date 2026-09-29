@@ -1,9 +1,26 @@
 
     const PAY_METHODS = {
       'paystack-titan': { label:'Paystack Titan', note:'Card, bank transfer or USSD — you\'re redirected to Paystack Titan to finish.' },
-      monnify:  { label:'Monnify',  note:'Monnify checkout opens in a moment. (Demo — merchant key not wired up yet.)' }
+      monnify:  { label:'Monnify',  note:'Monnify is not switched on yet. Please pay with Paystack Titan.' }
     };
     let selectedPay = 'paystack-titan';
+
+    function cartTotals(){
+      const subtotal = cart.reduce((sum, c) => sum + c.price * c.qty, 0);
+      const delivery = deliveryFeeForCart(cart);
+      return { subtotal, delivery, total: subtotal + delivery };
+    }
+    function setStatus(message, kind){
+      let el = document.getElementById('cartStatus');
+      if (!el){
+        el = document.createElement('p');
+        el.id = 'cartStatus'; el.className = 'page_note'; el.setAttribute('role', 'status'); el.setAttribute('aria-live', 'polite');
+        el.style.marginTop = '12px';
+        document.getElementById('cartCheckoutBtn').insertAdjacentElement('afterend', el);
+      }
+      el.textContent = message || '';
+      el.style.color = kind === 'error' ? 'var(--stamp, #a8322d)' : '';
+    }
 
     function renderCartPage(){
       const box = document.getElementById('cartItems');
@@ -20,16 +37,26 @@
           </div>`;
       } else {
         box.innerHTML = cart.map(c => `
-          <div class="cart_item" id="cart_item_${c.id}">
-            <span class="cart_item_title">${c.title} ${c.qty > 1 ? '× ' + c.qty : ''}</span>
+          <div class="cart_item" id="cart_item_${escapeHtml(c.id)}">
+            <span class="cart_item_title">${escapeHtml(c.title)} ${c.qty > 1 ? '× ' + c.qty : ''}</span>
             <span class="cart_item_price">${money(c.price * c.qty)}</span>
-            <button class="cart_item_remove" onclick="removeFromCart('${c.id}')">Remove</button>
+            <button class="cart_item_remove" onclick="removeFromCart('${escapeHtml(c.id)}')">Remove</button>
           </div>`).join('');
       }
       totalRow.style.display = hasItems ? 'flex' : 'none';
       checkoutBtn.style.display = hasItems ? 'block' : 'none';
       payOptions.hidden = !hasItems;
-      const total = cart.reduce((sum, c) => sum + c.price * c.qty, 0);
+      const { subtotal, delivery, total } = cartTotals();
+      let breakdown = document.getElementById('cartBreakdown');
+      if (!breakdown){
+        breakdown = document.createElement('div');
+        breakdown.id = 'cartBreakdown'; breakdown.className = 'page_note';
+        breakdown.style.cssText = 'display:none;margin:10px 0 4px';
+        totalRow.insertAdjacentElement('beforebegin', breakdown);
+      }
+      breakdown.style.display = hasItems ? 'block' : 'none';
+      breakdown.innerHTML = '<div style="display:flex;justify-content:space-between"><span>Items</span><span>' + money(subtotal) + '</span></div>' +
+        '<div style="display:flex;justify-content:space-between"><span>Duka delivery</span><span>' + (delivery ? money(delivery) : 'Free (pickup)') + '</span></div>';
       document.getElementById('cartTotal').textContent = money(total);
     }
 
@@ -49,18 +76,56 @@
       if (btn) selectPayMethod(btn.dataset.pay, btn);
     });
 
-    function checkout(){
-      if (!cart.length){ alert('Your cart is empty.'); return; }
-      const email = account.email || prompt('Enter your school email for checkout:');
-      if (!email) return;
-      const total = cart.reduce((sum, c) => sum + c.price * c.qty, 0);
-      if (selectedPay === 'monnify'){ payWithMonnify(email, total); return; }
-      payWithPaystackTitan(email, total * 100); // Paystack Titan expects kobo
+    // Polls the server (which is told about payments by Paystack's signed
+    // webhook) until the order flips to paid, or gives up after ~30 seconds.
+    async function waitForPaid(orderId){
+      for (let i = 0; i < 15; i++){
+        try { const order = await DukaApi.order(orderId); if (order.status === 'paid') return true; } catch (e) {}
+        await new Promise(r => setTimeout(r, 2000));
+      }
+      return false;
+    }
+
+    async function checkout(){
+      if (!cart.length){ setStatus('Your cart is empty.', 'error'); return; }
+      if (!window.DukaApi || !DukaApi.hasToken() || !sessionProfile){ location.href = 'login.html?next=cart.html'; return; }
+      if (selectedPay === 'monnify'){ setStatus(PAY_METHODS.monnify.note, 'error'); return; }
+      const btn = document.getElementById('cartCheckoutBtn');
+      btn.disabled = true; setStatus('Preparing your order…');
+      try {
+        // Ask first whether payments are switched on, so no half-made order is left behind.
+        const config = await DukaApi.config();
+        if (!config.paystackPublicKey){ setStatus('Online payment is not switched on for this site yet, so nothing was charged. The site owner needs to add the Paystack keys.', 'error'); return; }
+        let order;
+        try { order = await DukaApi.createOrder(cart.map(c => ({ listingId: c.id, quantity: c.qty }))); }
+        catch (e) {
+          setStatus(e.status === 404 ? 'Some of these are sample listings that are not on the server, so they cannot be paid for. Remove them and try again.' : e.message, 'error');
+          return;
+        }
+        const email = sessionProfile.user.email || account.email;
+        const paid = await payWithPaystackTitan(email, order.total * 100, order.paymentReference, config.paystackPublicKey);
+        if (!paid.ok){
+          await DukaApi.cancelOrder(order.id).catch(() => {});
+          setStatus('Payment window closed. Nothing was charged and the order was cancelled.');
+          return;
+        }
+        setStatus('Confirming your payment…');
+        if (await waitForPaid(order.id)){
+          cart.length = 0; try { await saveCart(); } catch (e) {}
+          updateCartBadge(); renderCartPage();
+          setStatus('Payment confirmed. Your order is in Purchase History.');
+        } else {
+          setStatus('Paystack has your payment; our confirmation is taking longer than usual. The order will show as paid in Purchase History once it lands.');
+        }
+      } catch (e) {
+        setStatus(e.message || 'Something went wrong starting checkout.', 'error');
+      } finally { btn.disabled = false; }
     }
 
     (async function(){
       await initShell();
       await chatInit();
+      selectedPay = getPrefs().payment.preferred;
       renderCartPage();
       document.querySelectorAll('.pay_option').forEach(b => {
         if (b.dataset.pay === selectedPay) selectPayMethod(selectedPay, b);
