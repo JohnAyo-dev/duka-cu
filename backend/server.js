@@ -5,7 +5,9 @@ require('./env');
 const store = require('./store');
 
 const PORT = Number(process.env.PORT || 3000);
-const HOST = process.env.HOST || '127.0.0.1';
+// Hosting platforms (Render, Railway, Fly...) hand the app a PORT and expect it
+// to listen on all interfaces; on a laptop the safer localhost-only default stays.
+const HOST = process.env.HOST || (process.env.PORT ? '0.0.0.0' : '127.0.0.1');
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || '*';
 const MAX_BODY_BYTES = 100_000;
 // Responses smaller than this are sent as-is; compression only pays off above it.

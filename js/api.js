@@ -1,12 +1,16 @@
 // Duka.cu HTTP client. The backend is optional during the migration: callers
 // fall back to browser storage when it is offline.
 (function () {
-  // Served by the Duka backend itself (npm start -> http://localhost:3000)?
-  // Then the API lives on the same origin. Otherwise (Live Server, file://,
-  // another static host) talk to the backend on its default address. A page
-  // can still override this by setting window.DUKA_API_BASE before this script.
-  const sameOrigin = /^https?:$/.test(location.protocol) && location.port === '3000';
-  const baseUrl = window.DUKA_API_BASE || (sameOrigin ? '/api/v1' : 'http://127.0.0.1:3000/api/v1');
+  // Where the API lives, in order of preference:
+  //  1. window.DUKA_API_BASE, if a page sets it before this script.
+  //  2. The same origin (/api/v1) on any real hosted address, and on
+  //     http://localhost:3000 when `npm start` serves the pages itself. On a
+  //     static host such as Netlify, netlify.toml proxies /api/* to the backend.
+  //  3. http://127.0.0.1:3000 when the pages are opened from somewhere local that
+  //     is not the backend (VS Code Live Server on :5500, or a file:// double-click).
+  const localHost = ['localhost', '127.0.0.1', '[::1]', ''].includes(location.hostname);
+  const isLocalDev = localHost && location.port !== '3000';
+  const baseUrl = window.DUKA_API_BASE || ((/^https?:$/.test(location.protocol) && !isLocalDev) ? '/api/v1' : 'http://127.0.0.1:3000/api/v1');
   const userKey = 'local:duka-api-user-id';
   const tokenKey = 'local:duka-api-token';
   let online = null;
@@ -38,8 +42,13 @@
     let payload = null;
     if (response.status !== 204) { try { payload = await response.json(); } catch (e) { payload = null; } }
     if (!response.ok) {
-      const err = new Error((payload && payload.error && payload.error.message) || 'The server could not complete that request.');
+      // A real API error always comes back as JSON with a message. Anything else
+      // (an HTML 404 from a static host with no backend behind it, a proxy's 502)
+      // means the Duka server itself was not reached.
+      const fromApi = Boolean(payload && payload.error);
+      const err = new Error(fromApi ? payload.error.message : 'The Duka.cu server is not reachable right now.');
       err.status = response.status;
+      err.unreachable = !fromApi;
       throw err;
     }
     online = true;
@@ -51,6 +60,8 @@
 
   window.DukaApi = {
     baseUrl,
+    // True when running from a developer's machine, where "start the backend" is the right advice.
+    isLocalDev,
     health,
     isOnline: () => online === true,
     hasToken: () => Boolean(savedToken()),

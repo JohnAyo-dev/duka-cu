@@ -91,8 +91,10 @@
       goHome(which === 'register');
     } catch (error) {
       // fetch() throws a bare TypeError when the server cannot be reached at all.
-      const unreachable = error instanceof TypeError;
-      showAlert(unreachable ? 'Could not reach the Duka.cu server. Start it with "npm start" and open http://localhost:3000.' : (error.message || 'That did not work. Please try again.'));
+      const unreachable = error instanceof TypeError || error.unreachable === true;
+      showAlert(unreachable
+        ? (window.DukaApi.isLocalDev ? 'Could not reach the Duka.cu server. Start it with "npm start" and open http://localhost:3000.' : 'Could not reach the Duka.cu server right now. Please try again in a moment.')
+        : (error.message || 'That did not work. Please try again.'));
       busy(form, false);
     }
   }
@@ -114,7 +116,7 @@
       if (live.length) providerNote.textContent = `Also available: ${live.join(', ')}.`;
       else providerNote.textContent = 'Email and password work right now. Google and Apple sign-in switch on once their keys are added to the server (see claude.md).';
     } catch (error) {
-      providerNote.textContent = 'Could not reach the sign-in service. Start the Duka.cu backend (npm start) and reload.';
+      providerNote.textContent = window.DukaApi.isLocalDev ? 'Could not reach the sign-in service. Start the Duka.cu backend (npm start) and reload.' : 'Could not reach the sign-in service right now. Please try again in a moment.';
       buttons.forEach(b => { b.disabled = true; });
     }
   }

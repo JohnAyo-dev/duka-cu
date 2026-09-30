@@ -121,3 +121,35 @@ Edited: `backend/server.js`, `js/app.js`, `js/nav.js`, `js/pages/{index,cart,pro
 `login.html`, `settings.html`, `budget.html`, and the header of every page.
 Note: `css/base.css`, `css/index.css` and `css/budget.css` still each carry their
 own copy of the header/menu rules; new shared rules live in `css/shell.css`.
+
+## Deploying
+
+Netlify (and GitHub Pages, Vercel static, etc.) only host files; they cannot run
+`backend/server.js`. The sign-in error "Could not reach the Duka.cu server" on a
+Netlify site means there is no backend behind it yet. Two ways to fix that:
+
+**A. Simplest: host everything on the backend.** The server already serves the
+pages and the API from one address. On Render / Railway / Fly, create a *web
+service* from this GitHub repo with start command `npm start` and set:
+
+| Variable | Value |
+|---|---|
+| `PUBLIC_URL` | the service's own https address |
+| `TRUST_PROXY` | `true` |
+| `DUKA_STORE_PATH` | a path on a **persistent disk/volume** (see warning) |
+| `ADMIN_EMAILS`, `GOOGLE_*`, `APPLE_*`, `PAYSTACK_*` | as in `.env.example` |
+
+(`PORT` is set by the platform; the server listens on all interfaces when it is.)
+Then use that address as your site and retire the Netlify one.
+
+**B. Keep Netlify for the pages** and host only the backend elsewhere. Deploy the
+backend as above, then put its address in `netlify.toml` (the `/api/*` redirect)
+and set `PUBLIC_URL` to your **Netlify** address (OAuth and Paystack call back
+through it). Apple sign-in then needs no separate domain work: Netlify gives you
+https. The pages find the API at their own `/api/v1` automatically.
+
+**Warning: data.** The dev store is a JSON file. On most hosts' free tiers local
+files are erased on every restart or redeploy, which would delete every account
+and listing. Use a persistent volume, or do the PostgreSQL migration in
+`ToDo.md` (backend item 1) before real users sign up. Free web services may also
+sleep when idle, so the first request after a pause can be slow.

@@ -15,7 +15,9 @@
       // Same rule as js/api.js: same-origin when the backend serves the pages.
       function apiBase(){
         if (window.DUKA_API_BASE) return window.DUKA_API_BASE;
-        return (/^https?:$/.test(location.protocol) && location.port === '3000') ? '/api/v1' : 'http://127.0.0.1:3000/api/v1';
+        // Same rule as js/api.js: same origin on a hosted address or on :3000, port 3000 only for local dev.
+        var local = ['localhost', '127.0.0.1', '[::1]', ''].indexOf(location.hostname) !== -1;
+        return (/^https?:$/.test(location.protocol) && !(local && location.port !== '3000')) ? '/api/v1' : 'http://127.0.0.1:3000/api/v1';
       }
       function savedToken(){
         try{ return localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY); }catch(e){ return null; }

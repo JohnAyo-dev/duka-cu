@@ -1,0 +1,16 @@
+# Netlify hosts the static pages only; it cannot run the Node backend.
+# This sends every /api/* request to the backend you deployed elsewhere
+# (Render, Railway, Fly...), so the pages keep talking to their own address
+# and no CORS setup is needed.
+#
+# 1. Deploy the backend (see "Deploying" in claude.md).
+# 2. Replace the URL below with the backend's address, no trailing slash.
+# 3. Commit and push; Netlify redeploys by itself.
+#
+# If you host everything on the backend instead (it serves the pages too),
+# you do not need this file at all.
+[[redirects]]
+  from = "/api/*"
+  to = "https://YOUR-BACKEND-URL/api/:splat"
+  status = 200
+  force = true
