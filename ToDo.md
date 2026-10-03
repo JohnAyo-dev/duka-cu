@@ -1,79 +1,98 @@
 Duka.cu — What is left to do
-Status per item: [done] verified in code and tests, [partial] some of it is
 done (what is done and what is left is spelled out), [todo] not started, and
 [needs you] cannot be finished from inside the code (credentials, accounts,
 hosting or a decision).
 
 ===================================================================
-BACKEND
+BACKEND (Ranked in Order of Importance)
 ===================================================================
 
-1. Production database [todo]
-   Migrate from backend/data/store.json to PostgreSQL with migrations,
-   indexes and automated backups. Everything below still writes to the JSON
-   file; a second server instance would not share it (this also means the
-   in-memory rate limiter is per process).
+--- Priority 1: Critical Functional Fixes & Data Integrity ---
 
-2. Payment verification [partial]
-   Done: POST /api/v1/webhooks/paystack checks Paystack's HMAC-SHA512
-   signature over the raw body, matches the reference to an order, checks the
-   amount against what the server priced, moves the order to "paid" exactly
-   once, and increments each listing's "sold" count. A paid order cannot be
-   cancelled; a late payment cannot revive a cancelled order. Unpaid orders can
-   be cancelled (POST /orders/:id/cancel). Covered by tests with a signed body.
-   Left: the Monnify webhook (same idea, its own signature scheme), inventory
-   reservation while an order is pending, refunds, and confirming the flow
-   against real Paystack once keys exist [needs you: Paystack keys].
+1. Image upload and cross-device storage [todo] [needs you: storage provider or local directory]
+   The API currently rejects data URLs in `listingInput` (server.js) and only
+   accepts `^https?://`. Consequently, all client photos uploaded on sell.html
+   are discarded on save, falling back to a stock Unsplash image. Needs an upload
+   endpoint (multipart/form-data or base64) writing to disk or cloud object storage.
 
-3. Delivery fees on orders [done]
-   Orders now carry subtotal, deliveryFee and total, all computed on the
-   server. Rule (mirrored in js/app.js for display): only listings set to Duka
-   delivery are charged; N500 if the order has food delivered, N2500 if it has
-   anything else delivered, both if mixed (N3000). Prices from the browser are
-   ignored.
+2. Inventory reservation while order is pending [todo]
+   Orders in `pending_payment` do not reserve stock. Multiple buyers can check
+   out the exact same single-stock listing simultaneously and both pay. Needs a
+   temporary lock/reservation (e.g. 15-minute hold) that releases on cancellation
+   or payment timeout.
 
-4. Listing moderation and safety [partial]
-   Done: POST /listings/:id/report (one report per person, not your own
-   listing), an append-only audit log (listing created/deleted, orders,
-   payments, reports, rider decisions), a cap on active listings per account,
-   and rate limiting on sign-in and on all writes.
-   Left: an approval workflow, a way for staff to read and act on reports
-   (there is no admin UI), seller verification (the verified flag is still
-   hardcoded false on real listings) and content moderation.
+3. Payment verification fallback & Monnify webhook [partial]
+   Done: POST /api/v1/webhooks/paystack signature verification and status update.
+   Left: Monnify webhook implementation (currently selectable in settings but
+   has no webhook handler), and a manual status check endpoint (e.g.
+   GET /api/v1/orders/:id/verify) to poll the payment provider directly if a
+   webhook drops or delays.
 
-5. Image storage [todo]
-   Needs managed object storage, so it is [needs you: a bucket and a
-   provider]. The API still accepts only http(s) image URLs.
+--- Priority 2: Core Marketplace Workflows ---
 
-6. Account and budget integration [done]
-   GET/PUT /me/preferences (theme, privacy switches, preferred payment method)
-   and GET/PUT /me/budget, validated and stored per account. Profile endpoints
-   already existed.
+4. Rider fulfillment & delivery order lifecycle [partial]
+   Done: POST /riders/applications and admin approval/rejection.
+   Left: Endpoints for approved riders to view available deliveries (paid orders
+   marked delivery: 'duka'), claim/assign deliveries, and update fulfillment
+   status (pending_pickup -> picked_up -> in_transit -> delivered). Orders
+   currently stop permanently at status: 'paid'.
 
-7. Chat completion [partial]
-   Done: unread counts per conversation and in total, POST
-   /conversations/:id/read, a last-message preview, GET /conversations/:id, and
-   ?include=messages on the list.
-   Left: message content moderation.
+5. Admin moderation & seller verification [partial]
+   Done: POST /listings/:id/report and audit logging.
+   Left: Admin endpoints to view reported listings (GET /api/v1/admin/reports),
+   take action (dismiss report, suspend listing, flag seller), and an admin
+   endpoint to verify campus sellers (verified is currently hardcoded false).
 
-8. Rider and delivery workflows [partial]
-   Done: POST /riders/applications (one open application per account), GET
-   /riders/applications/me, and admin approve/reject (PATCH, admins named in
-   ADMIN_EMAILS).
-   Left: order assignment, package tracking, delivery status updates.
+6. Server-side account deletion endpoint [todo]
+   The drawer's Delete Account option only clears local browser storage. The
+   backend needs DELETE /api/v1/me to deactivate or purge user account data,
+   active sessions, and listings.
 
-9. Production operations [partial]
-   Done: .env loading (backend/env.js), rate limiting, one-line JSON request
-   logs, a public-config endpoint, the site served from the same process, and
-   a larger test suite (see claude.md for the current count).
-   Left: monitoring and alerting, deployment config and HTTPS [needs you:
-   hosting], automated backups, a shared rate-limit store for multi-instance.
+--- Priority 3: Database & Reliability Hardening ---
+
+7. Production database migration [todo]
+   Migrate from backend/data/store.json to PostgreSQL (or SQLite/Prisma).
+   Currently, every read/write reserializes the full JSON file on disk, which
+   will choke the Node event loop as data grows, and prevents horizontal
+   scaling/clustering across multiple instances.
+
+8. Non-blocking asynchronous static file serving [todo]
+   `serveStatic` in server.js uses synchronous `fsSync.readFileSync(file)`.
+   Synchronous disk I/O on every HTML/CSS/JS request blocks the Node event loop
+   for all concurrent API requests. Needs streaming or async file reads.
+
+9. Store cleanup & memory leak prevention [todo]
+   Expired sessions in `data.sessions` are never purged unless a user explicitly
+   logs out. Abandoned OAuth states (`data.oauthStates`) and codes
+   (`data.oauthCodes`) also linger indefinitely. Needs an automated pruning sweep.
+
+--- Priority 4: Security, Real-Time & Maintainability ---
+
+10. Modular backend refactoring [todo]
+    Split monolithic 1000+ line `backend/server.js` into modular routes and
+    controllers (`routes/auth.js`, `routes/listings.js`, `routes/orders.js`,
+    `routes/riders.js`, `routes/admin.js`).
+
+11. Email ownership verification & password reset [todo]
+    Registration only verifies the `@stu.cu.edu.ng` regex domain without
+    proving inbox ownership, allowing email squatting. Needs email verification
+    tokens/OTPs and a forgotten password reset flow.
+
+12. Production operations & shared rate limiting [partial]
+    Done: .env loading, in-memory rate limiting, JSON request logging.
+    Left: Redis-backed rate limiting for multi-instance clusters, automated
+    backups, monitoring, and HTTPS/hosting setup.
+
+--- Completed Backend Items ---
+
+    Server-computed fees (N500 food, N2500 non-food, N3000 mixed) for Duka delivery.
+    GET/PUT /me/preferences and GET/PUT /me/budget per account.
+    Unread counts, mark-read, last-message preview, and message list endpoints.
 
 ===================================================================
 FRONTEND
 ===================================================================
 
-1. Extend the API client (js/api.js) [done]
    Listings (incl. delete and report), orders, config, conversations,
    messages, mark-read, preferences, budget, riders and feedback. Logging out
    now clears the session token. The offline fallback still exists for the
@@ -92,7 +111,6 @@ FRONTEND
    (PAYSTACK_PUBLIC_KEY). Until keys are set, checkout says payment is not
    switched on and creates nothing. Monnify is not wired.
 
-4. Sign-in / sign-up UI [done]
    login.html: buyer/seller question first when creating an account, email
    and password, Google/Apple/Facebook buttons that are only enabled when the
    server has their credentials, a clear "already signed in" state, and proper
@@ -115,7 +133,6 @@ FRONTEND
    Left: budget.js still has its own copy of the theme toggle instead of the
    shared helper.
 
-8. Rider application flow [done]
    riders.html submits to the API, is sent through sign-in first if needed, and
    shows the pending / approved / rejected state when you come back.
 
@@ -124,7 +141,6 @@ NEW ITEMS FOUND WHILE DOING THIS
 ===================================================================
 
 - Listing text was inserted into the page as raw HTML on the marketplace cards,
-  the product page and the cart. [done] It is escaped everywhere now.
 - The Delete Account menu item only clears this device and signs out; there is
   no server endpoint that deletes the account itself [todo].
 - The sample listings include phone numbers and school emails in the style of
@@ -145,3 +161,13 @@ DONE ALREADY
 - Frontend: listings load/create wired to the API with localStorage fallback;
   CSS/JS extracted to external files; theme, cart badge, chat badge shell;
   auth methods and bearer-token handling in js/api.js.
+
+
+
+================================================================================================
+Other
+================================================================================================
+   - sell.html redirects non-signed-in visitors to `login.html?next=sell.html`.
+   - Headers across the site update "Sell on Duka" to route unauthenticated visitors through sign-in first.
+   - login.html displays a contextual prompt ("Sign in to your Duka.cu account to list an item for sale") and defaults role to 'seller' on registration.
+   - sell.js pre-fills seller fields from verified student profile, refuses submission without session, and removes unauthenticated local storage listing fallback.

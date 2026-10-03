@@ -33,15 +33,23 @@
       if (ic) ic.textContent = document.documentElement.getAttribute('data-theme') === 'dark' ? '☀' : '☾';
     }
     function toggleBudgetTheme(){
-      const html = document.documentElement;
-      const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-      html.classList.add('theme-switching');
-      html.setAttribute('data-theme', next);
-      setTimeout(() => html.classList.remove('theme-switching'), 350);
-      try{ localStorage.setItem('local:duka-theme', next); }catch(e){}
+      if (window.toggleTheme) { window.toggleTheme(); }
+      else {
+        const html = document.documentElement;
+        const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        html.classList.add('theme-switching');
+        html.setAttribute('data-theme', next);
+        setTimeout(() => html.classList.remove('theme-switching'), 350);
+        try{ localStorage.setItem('local:duka-theme', next); }catch(e){}
+      }
       updateThemeIcon();
     }
     document.getElementById('themeBtn').addEventListener('click', toggleBudgetTheme);
+    if (window.setTheme) { updateThemeIcon(); }
+    else { updateThemeIcon(); }
+    // Ensure icon syncs if theme changes elsewhere
+    const obs = new MutationObserver(updateThemeIcon);
+    obs.observe(document.documentElement, { attributes:true, attributeFilter:['data-theme'] });
     updateThemeIcon();
 
     function formatNaira(n){
