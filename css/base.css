@@ -92,8 +92,8 @@ h1,h2,h3,h4{
   z-index:20;
   display:flex;
   align-items:center;
-  gap:24px;
-  padding:16px 32px;
+  gap:14px;
+  padding:16px 24px;
   background:var(--paper);
   border-bottom:1px solid var(--line);
 }
@@ -138,7 +138,7 @@ h1,h2,h3,h4{
 }
 .search_submit:hover{ background:var(--ledger); }
 
-.information{ display:flex; align-items:center; gap:22px; }
+.information{ display:flex; align-items:center; gap:10px; }
 .information p, .information a{
   margin:0;
   font-size:0.85rem;
@@ -211,7 +211,7 @@ html.theme-switching *, html.theme-switching *::before, html.theme-switching *::
 }
 .chat_badge.bump{ animation:badge-bump 0.35s var(--bounce-in) both; }
 @keyframes badge-bump{ 0%{ transform:scale(1); } 35%{ transform:scale(1.45); } 100%{ transform:scale(1); } }
-.sell a{
+.sell a{ margin-left:4px;
   display:inline-block;
   background:var(--stamp);
   color:var(--paper-raised);
@@ -1071,7 +1071,7 @@ details.contact_details[open] ul{ animation:details-reveal 0.2s var(--ease-out) 
 /* ---------- NAVIGATION DRAWER ---------- */
 body.nav_locked{ overflow:hidden; }
 .nav_burger{
-  margin-left:auto;
+  margin-left:0;
   display:flex; flex-direction:column; justify-content:center; gap:4px;
   width:40px; height:40px; padding:0 9px;
   background:transparent; border:1px solid var(--line); border-radius:6px;
